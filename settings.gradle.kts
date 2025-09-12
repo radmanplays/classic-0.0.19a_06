@@ -15,7 +15,7 @@ pluginManagement {
 	}
 }
 
-rootProject.name = "Classic 0.0.18a_2"
+rootProject.name = "Classic 0.0.19a_6"
 
 include("target_lwjgl_desktop")
 include("target_teavm_javascript")

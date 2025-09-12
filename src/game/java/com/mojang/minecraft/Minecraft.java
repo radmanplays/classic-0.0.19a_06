@@ -363,13 +363,6 @@ public final class Minecraft implements Runnable {
 								var46 = var44 - Mouse.getY() * var44 / this.height - 1;
 								this.screen.render(var47, var46);
 							}
-
-							try {
-								Thread.sleep(3L);
-							} catch (InterruptedException var28) {
-								var28.printStackTrace();
-							}
-
 							Display.update();
 						}
 

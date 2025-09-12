@@ -38,7 +38,7 @@ public final class ChatScreen extends Screen {
 				this.typedMsg = this.typedMsg.substring(0, this.typedMsg.length() - 1);
 			}
 
-			if("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ,.:-_\'*!\\\"#%/()=+?[]{}<>@|$".indexOf(var1) >= 0 && this.typedMsg.length() < 64 - (this.minecraft.user.name.length() + 2)) {
+			if("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ,.:-_\'*!\\\"#%/()=+?[]{}<>@|$;".indexOf(var1) >= 0 && this.typedMsg.length() < 64 - (this.minecraft.user.name.length() + 2)) {
 				this.typedMsg = this.typedMsg + var1;
 			}
 

@@ -143,7 +143,7 @@ public class Screen {
 					}
 
 					Button var5 = (Button)var6.buttons.get(var4);
-					if(var2 >= var5.x && var3 >= var5.y && var2 < var5.x + var5.w && var3 < var5.y + var5.h) {
+					if(var5.enabled && var2 >= var5.x && var3 >= var5.y && var2 < var5.x + var5.w && var3 < var5.y + var5.h) {
 						var6.buttonClicked(var5);
 					}
 

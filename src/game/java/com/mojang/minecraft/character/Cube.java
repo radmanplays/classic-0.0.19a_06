@@ -67,7 +67,7 @@ public final class Cube {
 			for(int var2 = 0; var2 < var1.polygons.length; ++var2) {
 				Polygon var3 = var1.polygons[var2];
 
-				for(int var4 = 3; var4 >= 0; --var4) {
+				for(int var4 = 0; var4 < 4; ++var4) {
 					Vertex var5 = var3.vertices[var4];
 					GL11.glTexCoord2f(var5.u / 64.0F, var5.v / 32.0F);
 					GL11.glVertex3f(var5.pos.x, var5.pos.y, var5.pos.z);

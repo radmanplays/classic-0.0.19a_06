@@ -43,6 +43,8 @@ public final class Packet {
 				var2 += 8;
 			} else if(var4 == byte[].class) {
 				var2 += 1024;
+			} else if(var4 == String.class) {
+				var2 += 64;
 			}
 		}
 

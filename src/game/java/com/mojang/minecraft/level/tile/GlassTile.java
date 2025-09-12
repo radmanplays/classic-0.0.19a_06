@@ -2,11 +2,11 @@ package com.mojang.minecraft.level.tile;
 
 import com.mojang.minecraft.level.Level;
 
-public final class LeafTile extends Tile {
-	private boolean renderAdjacentFaces = true;
+public final class GlassTile extends Tile {
+	private boolean renderAdjacentFaces = false;
 
-	protected LeafTile(int var1, int var2, boolean var3) {
-		super(18, 22);
+	protected GlassTile(int var1, int var2, boolean var3) {
+		super(20, 49);
 	}
 
 	public final boolean isSolid() {

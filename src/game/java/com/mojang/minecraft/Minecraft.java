@@ -6,6 +6,7 @@ import com.mojang.minecraft.character.ZombieModel;
 import com.mojang.minecraft.gui.ChatScreen;
 import com.mojang.minecraft.gui.ErrorScreen;
 import com.mojang.minecraft.gui.Font;
+import com.mojang.minecraft.gui.InGameHud;
 import com.mojang.minecraft.gui.PauseScreen;
 import com.mojang.minecraft.gui.Screen;
 import com.mojang.minecraft.level.Level;
@@ -26,6 +27,9 @@ import com.mojang.minecraft.renderer.Frustum;
 import com.mojang.minecraft.renderer.LevelRenderer;
 import com.mojang.minecraft.renderer.Tesselator;
 import com.mojang.minecraft.renderer.Textures;
+import com.mojang.minecraft.renderer.texture.TextureFX;
+import com.mojang.minecraft.renderer.texture.TextureLavaFX;
+import com.mojang.minecraft.renderer.texture.TextureWaterFX;
 import com.mojang.util.GLAllocation;
 import net.lax1dude.eaglercraft.EagRuntime;
 import net.lax1dude.eaglercraft.EagUtils;
@@ -47,6 +51,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.glu.GLU;
 
 import net.lax1dude.eaglercraft.internal.EnumPlatformType;
+import net.lax1dude.eaglercraft.internal.buffer.ByteBuffer;
 import net.lax1dude.eaglercraft.internal.buffer.FloatBuffer;
 import net.lax1dude.eaglercraft.internal.buffer.IntBuffer;
 import net.lax1dude.eaglercraft.internal.vfs2.VFile2;
@@ -61,28 +66,28 @@ public final class Minecraft implements Runnable {
 	public Level level;
 	private LevelRenderer levelRenderer;
 	public Player player;
-	private int paintTexture = 1;
+	public int paintTexture = 1;
 	private ParticleEngine particleEngine;
 	public User user = null;
 	private int yMouseAxis = 1;
-	private Textures textures;
+	public Textures textures;
 	public Font font;
 	private int editMode = 0;
-	private Screen screen = null;
+	public Screen screen = null;
 	private LevelIO levelIo = new LevelIO(this);
 	private LevelGen levelGen = new LevelGen(this);
 	private int ticksRan = 0;
 	public String loadMapUser = null;
+	private InGameHud hud;
 	public int loadMapID = 0;
 	public ConnectionManager connectionManager;
-	private List chatMessages = new ArrayList();
 	String server = null;
 	int port = 0;
 	private float fogColorRed = 0.5F;
 	private float fogColorGreen = 0.8F;
 	private float fogColorBlue = 1.0F;
 	private volatile boolean running = false;
-	private String fpsString = "";
+	public String fpsString = "";
 	private boolean mouseGrabbed = false;
 	private int prevFrameTime = 0;
 	private float renderDistance = 0.0F;
@@ -104,6 +109,8 @@ public final class Minecraft implements Runnable {
 		this.height = height;
 		this.fullscreen = false;
 		this.textures = new Textures();
+		this.textures.registerTextureFX(new TextureLavaFX());
+		this.textures.registerTextureFX(new TextureWaterFX());
 	}
 	
 	public final void setServer(String var1) {
@@ -179,7 +186,7 @@ public final class Minecraft implements Runnable {
 				this.height = Display.getHeight();
 			}
 
-			Display.setTitle("Minecraft 0.0.17a");
+			Display.setTitle("Minecraft 0.0.19a_06");
 
 			Display.create();
 			Keyboard.create();
@@ -237,6 +244,7 @@ public final class Minecraft implements Runnable {
 			}
 
 			checkGlError("Post startup");
+			this.hud = new InGameHud(this, this.width, this.height);
 		} catch (Exception var26) {
 			var26.printStackTrace();
 			System.out.println("Failed to start Minecraft");
@@ -269,56 +277,73 @@ public final class Minecraft implements Runnable {
 					}
 
 					try {
-						Timer var31 = this.timer;
-						long var7 = System.nanoTime();
-						long var35 = var7 - var31.lastTime;
-						var31.lastTime = var7;
-						if(var35 < 0L) {
-							var35 = 0L;
+						Timer var39 = this.timer;
+						long var7 = System.currentTimeMillis();
+						long var43 = var7 - var39.lastSyncSysClock;
+						long var11 = System.nanoTime() / 1000000L;
+						double var15;
+						if(var43 > 1000L) {
+							long var13 = var11 - var39.lastSyncHRClock;
+							var15 = (double)var43 / (double)var13;
+							var39.timeSyncAdjustment += (var15 - var39.timeSyncAdjustment) * (double)0.2F;
+							var39.lastSyncSysClock = var7;
+							var39.lastSyncHRClock = var11;
 						}
 
-						if(var35 > 1000000000L) {
-							var35 = 1000000000L;
+						if(var43 < 0L) {
+							var39.lastSyncSysClock = var7;
+							var39.lastSyncHRClock = var11;
 						}
 
-						var31.fps += (float)var35 * var31.timeScale * var31.ticksPerSecond / 1.0E9F;
-						var31.ticks = (int)var31.fps;
-						if(var31.ticks > 100) {
-							var31.ticks = 100;
+						double var48 = (double)var11 / 1000.0D;
+						var15 = (var48 - var39.lastHRTime) * var39.timeSyncAdjustment;
+						var39.lastHRTime = var48;
+						if(var15 < 0.0D) {
+							var15 = 0.0D;
 						}
 
-						var31.fps -= (float)var31.ticks;
-						var31.a = var31.fps;
+						if(var15 > 1.0D) {
+							var15 = 1.0D;
+						}
 
-						for(int var32 = 0; var32 < this.timer.ticks; ++var32) {
+						var39.fps = (float)((double)var39.fps + var15 * (double)var39.timeScale * (double)var39.ticksPerSecond);
+						var39.ticks = (int)var39.fps;
+						if(var39.ticks > 100) {
+							var39.ticks = 100;
+						}
+
+						var39.fps -= (float)var39.ticks;
+						var39.a = var39.fps;
+
+						for(int var40 = 0; var40 < this.timer.ticks; ++var40) {
 							++this.ticksRan;
 							this.tick();
 						}
 
 						checkGlError("Pre render");
-						float var33 = this.timer.a;
+						float var41 = this.timer.a;
 						if(!Display.isActive()) {
-							if(this.screen == null){
+							if(this.screen == null) {
 								this.pauseGame();
 							}
 						}
 
-						int var5;
-						int var34;
-						int var38;
+						int var42;
+						int var44;
+						int var46;
 						if(this.mouseGrabbed) {
-							var34 = 0;
-							var38 = 0;
-							var34 = Mouse.getDX();
-							var38 = Mouse.getDY();
+							var42 = 0;
+							var44 = 0;
+							var42 = Mouse.getDX();
+							var44 = Mouse.getDY();
 
-							this.player.turn((float)var34, (float)(var38 * this.yMouseAxis));
+							this.player.turn((float)var42, (float)(var44 * this.yMouseAxis));
 						}
 
 						if(!this.hideGui) {
 							if(this.level != null) {
-								this.render(var33);
-								this.renderGui();
+								this.render(var41);
+								this.hud.render();
 								checkGlError("Rendered gui");
 							} else {
 								GL11.glViewport(0, 0, this.width, this.height);
@@ -332,11 +357,17 @@ public final class Minecraft implements Runnable {
 							}
 
 							if(this.screen != null) {
-								var34 = this.width * 240 / this.height;
-								var38 = this.height * 240 / this.height;
-								int var37 = Mouse.getX() * var34 / this.width;
-								var5 = var38 - Mouse.getY() * var38 / this.height - 1;
-								this.screen.render(var37, var5);
+								var42 = this.width * 240 / this.height;
+								var44 = this.height * 240 / this.height;
+								int var47 = Mouse.getX() * var42 / this.width;
+								var46 = var44 - Mouse.getY() * var44 / this.height - 1;
+								this.screen.render(var47, var46);
+							}
+
+							try {
+								Thread.sleep(3L);
+							} catch (InterruptedException var28) {
+								var28.printStackTrace();
 							}
 
 							Display.update();
@@ -344,8 +375,9 @@ public final class Minecraft implements Runnable {
 
 						checkGlError("Post render");
 						++var3;
-					} catch (Exception var27) {
-						this.setScreen(new ErrorScreen("Client error", "The game broke! [" + var27 + "]"));
+					} catch (Exception var34) {
+						this.setScreen(new ErrorScreen("Client error", "The game broke! [" + var34 + "]"));
+						var34.printStackTrace();
 					}
 
 					while(System.currentTimeMillis() >= var1 + 1000L) {
@@ -357,10 +389,10 @@ public final class Minecraft implements Runnable {
 				}
 
 			return;
-		} catch (StopGameException var27) {
+		} catch (StopGameException var35) {
 			return;
-		} catch (Exception var24) {
-			var24.printStackTrace();
+		} catch (Exception var36) {
+			var36.printStackTrace();
 		} finally {
 			this.destroy();
 		}
@@ -426,7 +458,7 @@ public final class Minecraft implements Runnable {
 
 			Tile var4 = Tile.tiles[this.level.getTile(var1, var2, var3)];
 			if(this.editMode == 0) {
-				boolean var7 = this.level.setTile(var1, var2, var3, 0);
+				boolean var7 = this.level.netSetTile(var1, var2, var3, 0);
 				if(var4 != null && var7) {
 					if(this.isMultiplayer()) {
 						this.connectionManager.sendBlockChange(var1, var2, var3, this.editMode, this.paintTexture);
@@ -444,7 +476,7 @@ public final class Minecraft implements Runnable {
 							this.connectionManager.sendBlockChange(var1, var2, var3, this.editMode, this.paintTexture);
 						}
 
-						this.level.setTile(var1, var2, var3, this.paintTexture);
+						this.level.netSetTile(var1, var2, var3, this.paintTexture);
 						Tile.tiles[this.paintTexture].onBlockAdded(this.level, var1, var2, var3);
 					}
 				}
@@ -454,21 +486,36 @@ public final class Minecraft implements Runnable {
 	}
 	
 	private void tick() {
-		for(int var1 = 0; var1 < this.chatMessages.size(); ++var1) {
-			++((ChatLine)this.chatMessages.get(var1)).counter;
+		InGameHud var1 = this.hud;
+		for(int var2 = 0; var2 < var1.messages.size(); ++var2) {
+			++((ChatLine)var1.messages.get(var2)).counter;
+		}
+
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, this.textures.getTextureId("/terrain.png"));
+		Textures t = this.textures;
+
+		for(int var2 = 0; var2 < t.textureList.size(); ++var2) {
+			TextureFX var3 = (TextureFX)t.textureList.get(var2);
+			var3.onTick();
+			t.textureBuffer.clear();
+			t.textureBuffer.put(var3.imageData);
+			t.textureBuffer.position(0).limit(var3.imageData.length);
+			GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, var3.iconIndex % 16 << 4, var3.iconIndex / 16 << 4, 16, 16, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, (ByteBuffer)t.textureBuffer);
 		}
 		int var3;
 		int var4;
 		int var10;
 		if(this.connectionManager != null) {
-			Player var9 = this.player;
-			ConnectionManager var8 = this.connectionManager;
-			var3 = (int)(var9.x * 32.0F);
-			var4 = (int)(var9.y * 32.0F);
-			int var5 = (int)(var9.z * 32.0F);
-			int var6 = (int)(var9.yRot * 256.0F / 360.0F) & 255;
-			var10 = (int)(var9.xRot * 256.0F / 360.0F) & 255;
-			var8.connection.sendPacket(Packet.PLAYER_TELEPORT, new Object[]{Integer.valueOf(-1), Integer.valueOf(var3), Integer.valueOf(var4), Integer.valueOf(var5), Integer.valueOf(var6), Integer.valueOf(var10)});
+			Player var14 = this.player;
+			ConnectionManager var9 = this.connectionManager;
+			if(var9.isConnected()) {
+				int var13 = (int)(var14.x * 32.0F);
+				var4 = (int)(var14.y * 32.0F);
+				int var5 = (int)(var14.z * 32.0F);
+				int var6 = (int)(var14.yRot * 256.0F / 360.0F) & 255;
+				int var2 = (int)(var14.xRot * 256.0F / 360.0F) & 255;
+				var9.connection.sendPacket(Packet.PLAYER_TELEPORT, new Object[]{Integer.valueOf(-1), Integer.valueOf(var13), Integer.valueOf(var4), Integer.valueOf(var5), Integer.valueOf(var6), Integer.valueOf(var2)});
+			}
 		}
 
 		LevelRenderer var11;
@@ -650,11 +697,16 @@ public final class Minecraft implements Runnable {
 
 	private void render(float var1) {
 		if(!Display.isActive()) {
-			this.pauseGame();
+			if(this.screen == null) {
+				this.pauseGame();
+			}
 		}
 		if (Display.wasResized()) {
 			this.width = Display.getWidth();
 			this.height = Display.getHeight();
+			if(this.hud !=null) {
+				this.hud = new InGameHud(this, this.width, this.height);
+			}
 			
 			if(this.screen != null) {
 				Screen sc = this.screen;
@@ -822,6 +874,7 @@ public final class Minecraft implements Runnable {
 			GL11.glCallLists(lr.dummyBuffer);
 			GL11.glDisable(GL11.GL_TEXTURE_2D);
 		}
+		GL11.glDepthMask(true);
 		GL11.glDisable(GL11.GL_BLEND);
 		GL11.glDisable(GL11.GL_LIGHTING);
 		GL11.glDisable(GL11.GL_FOG);
@@ -836,7 +889,7 @@ public final class Minecraft implements Runnable {
 		}
 	}
 	
-	private void initGui() {
+	public void initGui() {
 		int var1 = this.width * 240 / this.height;
 		int var2 = this.height * 240 / this.height;
 		GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
@@ -848,95 +901,6 @@ public final class Minecraft implements Runnable {
 		GL11.glTranslatef(0.0F, 0.0F, -200.0F);
 	}
 
-	private void renderGui() {
-		int var1 = this.width * 240 / this.height;
-		int var2 = this.height * 240 / this.height;
-		this.initGui();
-		checkGlError("GUI: Init");
-		GL11.glPushMatrix();
-		GL11.glTranslatef((float)(var1 - 16), 16.0F, -50.0F);
-		Tesselator var3 = Tesselator.instance;
-		GL11.glScalef(16.0F, 16.0F, 16.0F);
-		GL11.glRotatef(-30.0F, 1.0F, 0.0F, 0.0F);
-		GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
-		GL11.glTranslatef(-1.5F, 0.5F, 0.5F);
-		GL11.glScalef(-1.0F, -1.0F, -1.0F);
-		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-		int var4 = this.textures.getTextureId("/terrain.png");
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, var4);
-		GL11.glEnable(GL11.GL_TEXTURE_2D);
-		var3.begin();
-		Tile.tiles[this.paintTexture].render(var3, this.level, 0, -2, 0, 0);
-		var3.end();
-		GL11.glDisable(GL11.GL_TEXTURE_2D);
-		GL11.glPopMatrix();
-		checkGlError("GUI: Draw selected");
-		this.font.drawShadow("0.0.18a_02", 2, 2, 16777215);
-		this.font.drawShadow(this.fpsString, 2, 12, 16777215);
-
-		byte var13 = 10;
-		boolean var5 = false;
-		if(this.screen instanceof ChatScreen) {
-			var13 = 20;
-			var5 = true;
-		}
-
-		int var6;
-		for(var6 = 0; var6 < this.chatMessages.size() && var6 < var13; ++var6) {
-			if(((ChatLine)this.chatMessages.get(var6)).counter < 200 || var5) {
-				this.font.drawShadow(((ChatLine)this.chatMessages.get(var6)).message, 2, var2 - 8 - (var6 << 3) - 16, 16777215);
-			}
-		}
-
-		checkGlError("GUI: Draw text");
-		var4 = var1 / 2;
-		int var8 = var2 / 2;
-		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-		var3.begin();
-		var3.vertex((float)(var4 + 1), (float)(var8 - 4), 0.0F);
-		var3.vertex((float)var4, (float)(var8 - 4), 0.0F);
-		var3.vertex((float)var4, (float)(var8 + 5), 0.0F);
-		var3.vertex((float)(var4 + 1), (float)(var8 + 5), 0.0F);
-		var3.vertex((float)(var4 + 5), (float)var8, 0.0F);
-		var3.vertex((float)(var4 - 4), (float)var8, 0.0F);
-		var3.vertex((float)(var4 - 4), (float)(var8 + 1), 0.0F);
-		var3.vertex((float)(var4 + 5), (float)(var8 + 1), 0.0F);
-		var3.end();
-		checkGlError("GUI: Draw crosshair");
-		
-		if(Keyboard.isKeyDown(Keyboard.KEY_TAB) && this.connectionManager != null && this.connectionManager.isConnected()) {
-			ConnectionManager var7 = this.connectionManager;
-			ArrayList var10 = new ArrayList();
-			var10.add(var7.minecraft.user.name);
-			Iterator players = var7.players.values().iterator();
-
-			while(players.hasNext()) {
-				NetworkPlayer var14 = (NetworkPlayer)players.next();
-				var10.add(var14.name);
-			}
-
-			ArrayList var9 = var10;
-			GL11.glEnable(GL11.GL_BLEND);
-			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-			GL11.glBegin(GL11.GL_QUADS);
-			GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.7F);
-			GL11.glVertex2f((float)(var4 + 128), (float)(var8 - 68 - 12));
-			GL11.glVertex2f((float)(var4 - 128), (float)(var8 - 68 - 12));
-			GL11.glColor4f(0.2F, 0.2F, 0.2F, 0.8F);
-			GL11.glVertex2f((float)(var4 - 128), (float)(var8 + 68));
-			GL11.glVertex2f((float)(var4 + 128), (float)(var8 + 68));
-			GL11.glEnd();
-			GL11.glDisable(GL11.GL_BLEND);
-			String var11 = "Connected players:";
-                        this.font.drawShadow(var11, var4 - this.font.width(var11) / 2, var8 - 64 - 12, 16777215);
-
-			for(int var12 = 0; var12 < var9.size(); ++var12) {
-				int var15 = var4 + var12 % 2 * 120 - 120;
-				int var16 = var8 - 64 + (var12 / 2 << 3);
-				this.font.draw((String)var9.get(var12), var15, var16, 16777215);
-			}
-		}
-	}
 	
 	private void setupFog() {
 		GL11.glFog(GL11.GL_FOG_COLOR, this.getBuffer(this.fogColorRed, this.fogColorGreen, this.fogColorBlue, 1.0F));
@@ -1077,10 +1041,11 @@ public final class Minecraft implements Runnable {
 	}
 	
 	public final void addChatMessage(String var1) {
-		this.chatMessages.add(0, new ChatLine(var1));
+		InGameHud var2 = this.hud;
+		var2.messages.add(0, new ChatLine(var1));
 
-		while(this.chatMessages.size() > 50) {
-			this.chatMessages.remove(this.chatMessages.size() - 1);
+		while(var2.messages.size() > 50) {
+			var2.messages.remove(var2.messages.size() - 1);
 		}
 
 	}

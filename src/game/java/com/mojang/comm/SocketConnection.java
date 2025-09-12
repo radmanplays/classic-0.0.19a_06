@@ -99,11 +99,12 @@ public final class SocketConnection {
 							var21 = ((Short)var11[1]).shortValue();
 							var17 = ((Short)var11[2]).shortValue();
 							Level var7 = new Level();
+							var7.setNetworkMode(true);
 							var7.setData(var18, var21, var17, var14);
 							var12.minecraft.setLevel(var7);
 						} else if(var3 == Packet.SET_TILE) {
 							if(var12.minecraft.level != null) {
-								var12.minecraft.level.setTile(((Short)var11[0]).shortValue(), ((Short)var11[1]).shortValue(), ((Short)var11[2]).shortValue(), ((Byte)var11[3]).byteValue());
+								var12.minecraft.level.netSetTile(((Short)var11[0]).shortValue(), ((Short)var11[1]).shortValue(), ((Short)var11[2]).shortValue(), ((Byte)var11[3]).byteValue());
 							}
 						} else {
 							byte var8;

@@ -79,14 +79,6 @@ public class Entity implements Serializable {
 	}
 
 	protected void setRot(float var1, float var2) {
-		while(this.yRotO - var1 < -180.0F) {
-			this.yRotO += 360.0F;
-		}
-
-		while(this.yRotO - var1 >= 180.0F) {
-			this.yRotO -= 360.0F;
-		}
-
 		this.yRot = var1;
 		this.xRot = var2;
 	}

@@ -59,8 +59,7 @@ public final class ConnectionManager {
         if (this.connection.webSocket != null
                 && this.connection.webSocket.getState() == EnumEaglerConnectionState.CONNECTED
                 && !loginSent) {
-//        	this.connection.sendPacket(Packet.LOGIN, new Object[]{Byte.valueOf((byte)3),minecraft.user != null ? minecraft.user.name : "guest", "--"});
-        	this.connection.sendPacket(Packet.LOGIN, new Object[]{Byte.valueOf((byte)4), this.minecraft.user.name, ""});
+        	this.connection.sendPacket(Packet.LOGIN, new Object[]{Byte.valueOf((byte)5), this.minecraft.user.name, ""});
         	loginSent = true;
         }
     }

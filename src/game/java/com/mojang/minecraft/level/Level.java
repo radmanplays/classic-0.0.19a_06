@@ -35,6 +35,7 @@ public class Level implements Serializable {
 	private transient int randValue = this.random.nextInt();
 	private transient ArrayList tickList = new ArrayList();
 	public ArrayList entities = new ArrayList();
+	private boolean networkMode = false;
 	int unprocessed = 0;
 	private int tickCount = 0;
 
@@ -188,15 +189,21 @@ public class Level implements Serializable {
 	}
 
 	public void swap(int var1, int var2, int var3, int var4, int var5, int var6) {
-		int var7 = this.getTile(var1, var2, var3);
-		int var8 = this.getTile(var4, var5, var6);
-		this.setTileNoNeighborChange(var1, var2, var3, var8);
-		this.setTileNoNeighborChange(var4, var5, var6, var7);
-		this.updateNeighborAt(var1, var2, var3, var8);
-		this.updateNeighborAt(var4, var5, var6, var7);
+		if(!this.networkMode) {
+			int var7 = this.getTile(var1, var2, var3);
+			int var8 = this.getTile(var4, var5, var6);
+			this.setTileNoNeighborChange(var1, var2, var3, var8);
+			this.setTileNoNeighborChange(var4, var5, var6, var7);
+			this.updateNeighborsAt(var1, var2, var3, var8);
+			this.updateNeighborsAt(var4, var5, var6, var7);
+		}
 	}
 
 	public boolean setTileNoNeighborChange(int var1, int var2, int var3, int var4) {
+		return this.networkMode ? false : this.netSetTileNoNeighborChange(var1, var2, var3, var4);
+	}
+
+	public boolean netSetTileNoNeighborChange(int var1, int var2, int var3, int var4) {
 		if(var1 >= 0 && var2 >= 0 && var3 >= 0 && var1 < this.width && var2 < this.depth && var3 < this.height) {
 			if(var4 == this.blocks[(var2 * this.height + var3) * this.width + var1]) {
 				return false;
@@ -205,12 +212,21 @@ public class Level implements Serializable {
 					var4 = Tile.water.id;
 				}
 
+				byte var5 = this.blocks[(var2 * this.height + var3) * this.width + var1];
 				this.blocks[(var2 * this.height + var3) * this.width + var1] = (byte)var4;
+				if(var5 != 0) {
+					Tile.tiles[var5].onTileRemoved(this, var1, var2, var3);
+				}
+
+				if(var4 != 0) {
+					Tile.tiles[var4].onTileAdded(this, var1, var2, var3);
+				}
+
 				this.calcLightDepths(var1, var3, 1, 1);
 
 				for(var4 = 0; var4 < this.levelListeners.size(); ++var4) {
-					LevelRenderer var5 = (LevelRenderer)this.levelListeners.get(var4);
-					var5.setDirty(var1 - 1, var2 - 1, var3 - 1, var1 + 1, var2 + 1, var3 + 1);
+					LevelRenderer var9 = (LevelRenderer)this.levelListeners.get(var4);
+					var9.setDirty(var1 - 1, var2 - 1, var3 - 1, var1 + 1, var2 + 1, var3 + 1);
 				}
 
 				return true;
@@ -221,21 +237,32 @@ public class Level implements Serializable {
 	}
 
 	public boolean setTile(int var1, int var2, int var3, int var4) {
-		if(this.setTileNoNeighborChange(var1, var2, var3, var4)) {
-			this.updateNeighborAt(var1, var2, var3, var4);
+		if(this.networkMode) {
+			return false;
+		} else if(this.setTileNoNeighborChange(var1, var2, var3, var4)) {
+			this.updateNeighborsAt(var1, var2, var3, var4);
 			return true;
 		} else {
 			return false;
 		}
 	}
 
-	private void updateNeighborAt(int var1, int var2, int var3, int var4) {
-		this.neighborChanged(var1 - 1, var2, var3, var4);
-		this.neighborChanged(var1 + 1, var2, var3, var4);
-		this.neighborChanged(var1, var2 - 1, var3, var4);
-		this.neighborChanged(var1, var2 + 1, var3, var4);
-		this.neighborChanged(var1, var2, var3 - 1, var4);
-		this.neighborChanged(var1, var2, var3 + 1, var4);
+	public boolean netSetTile(int var1, int var2, int var3, int var4) {
+		if(this.netSetTileNoNeighborChange(var1, var2, var3, var4)) {
+			this.updateNeighborsAt(var1, var2, var3, var4);
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	public void updateNeighborsAt(int var1, int var2, int var3, int var4) {
+		this.updateNeighborAt(var1 - 1, var2, var3, var4);
+		this.updateNeighborAt(var1 + 1, var2, var3, var4);
+		this.updateNeighborAt(var1, var2 - 1, var3, var4);
+		this.updateNeighborAt(var1, var2 + 1, var3, var4);
+		this.updateNeighborAt(var1, var2, var3 - 1, var4);
+		this.updateNeighborAt(var1, var2, var3 + 1, var4);
 	}
 
 	public boolean setTileNoUpdate(int var1, int var2, int var3, int var4) {
@@ -251,7 +278,7 @@ public class Level implements Serializable {
 		}
 	}
 
-	private void neighborChanged(int var1, int var2, int var3, int var4) {
+	private void updateNeighborAt(int var1, int var2, int var3, int var4) {
 		if(var1 >= 0 && var2 >= 0 && var3 >= 0 && var1 < this.width && var2 < this.depth && var3 < this.height) {
 			Tile var5 = Tile.tiles[this.blocks[(var2 * this.height + var3) * this.width + var1]];
 			if(var5 != null) {
@@ -266,7 +293,7 @@ public class Level implements Serializable {
 	}
 
 	public int getTile(int var1, int var2, int var3) {
-		return var1 >= 0 && var2 >= 0 && var3 >= 0 && var1 < this.width && var2 < this.depth && var3 < this.height ? this.blocks[(var2 * this.height + var3) * this.width + var1] : 0;
+		return var1 >= 0 && var2 >= 0 && var3 >= 0 && var1 < this.width && var2 < this.depth && var3 < this.height ? this.blocks[(var2 * this.height + var3) * this.width + var1] & 255 : 0;
 	}
 
 	public boolean isSolidTile(int var1, int var2, int var3) {
@@ -281,7 +308,6 @@ public class Level implements Serializable {
 				this.entities.remove(var1--);
 			}
 		}
-
 	}
 
 	public void tick() {
@@ -463,13 +489,15 @@ public class Level implements Serializable {
 	}
 
 	public void addToTickNextTick(int var1, int var2, int var3, int var4) {
-		Coord var5 = new Coord(var1, var2, var3, var4);
-		if(var4 > 0) {
-			var3 = Tile.tiles[var4].getTickDelay();
-			var5.scheduledTime = var3;
-		}
+		if(!this.networkMode) {
+			Coord var5 = new Coord(var1, var2, var3, var4);
+			if(var4 > 0) {
+				var3 = Tile.tiles[var4].getTickDelay();
+				var5.scheduledTime = var3;
+			}
 
-		this.tickList.add(var5);
+			this.tickList.add(var5);
+		}
 	}
 
 	public boolean isFree(AABB var1) {
@@ -611,6 +639,20 @@ public class Level implements Serializable {
 			var22 = 1.0F - var22;
 			return 1.0F - var22 * var22 * var22;
 		}
+	}
+	
+
+	public byte[] copyBlocks() {
+		return Arrays.copyOf(this.blocks, this.blocks.length);
+	}
+
+	public boolean isWater(int var1, int var2, int var3) {
+		int var4 = this.getTile(var1, var2, var3);
+		return var4 > 0 && Tile.tiles[var4].getLiquidType() == Liquid.water;
+	}
+
+	public void setNetworkMode(boolean var1) {
+		this.networkMode = var1;
 	}
 	
 	public HitResult clip(Vec3 var1, Vec3 var2) {

@@ -16,7 +16,6 @@ public class Tile {
 	public static final Tile rock;
 	public static final Tile grass;
 	public static final Tile dirt;
-	public static final Tile stoneBrick;
 	public static final Tile wood;
 	public static final Tile bush;
 	public static final Tile unbreakable;
@@ -31,6 +30,8 @@ public class Tile {
 	public static final Tile oreCoal;
 	public static final Tile log;
 	public static final Tile leaf;
+	public static final Tile sponge;
+	public static final Tile glass;
 	public int tex;
 	public final int id;
 	private float xx0;
@@ -53,12 +54,12 @@ public class Tile {
 	}
 
 	protected final void setShape(float var1, float var2, float var3, float var4, float var5, float var6) {
-		this.xx0 = 0.0F;
+		this.xx0 = var1;
 		this.yy0 = var2;
-		this.zz0 = 0.0F;
-		this.xx1 = 1.0F;
+		this.zz0 = var3;
+		this.xx1 = var4;
 		this.yy1 = var5;
-		this.zz1 = 1.0F;
+		this.zz1 = var6;
 	}
 
 	protected Tile(int var1, int var2) {
@@ -72,12 +73,11 @@ public class Tile {
 
 	public boolean render(Tesselator var1, Level var2, int var3, int var4, int var5, int var6) {
 		boolean var7 = false;
-		float var8 = 0.0F;
+		float var8 = 0.5F;
 		float var9 = 0.8F;
 		float var10 = 0.6F;
 		float var11;
 		if(this.shouldRenderFace(var2, var4, var5 - 1, var6, var3, 0)) {
-			var8 = 0.5F;
 			var11 = this.getBrightness(var2, var4, var5 - 1, var6);
 			var1.color(var8 * var11, var8 * var11, var8 * var11);
 			this.renderFace(var1, var4, var5, var6, 0);
@@ -368,6 +368,12 @@ public class Tile {
 		return 0;
 	}
 
+	public void onTileAdded(Level var1, int var2, int var3, int var4) {
+	}
+
+	public void onTileRemoved(Level var1, int var2, int var3, int var4) {
+	}
+
 	static {
 		Tile var10000 = new Tile(1, 1);
 		float var1 = 1.0F;
@@ -375,16 +381,16 @@ public class Tile {
 		Tile var2 = var10000;
 		var2.particleGravity = var1;
 		rock = var2;
-		GrassTile var11 = new GrassTile(2);
+		GrassTile var13 = new GrassTile(2);
 		var1 = 1.0F;
 		var0 = 0.9F;
-		GrassTile var3 = var11;
+		GrassTile var3 = var13;
 		var3.particleGravity = var1;
 		grass = var3;
-		DirtTile var12 = new DirtTile(3, 2);
+		DirtTile var14 = new DirtTile(3, 2);
 		var1 = 1.0F;
 		var0 = 0.8F;
-		DirtTile var4 = var12;
+		DirtTile var4 = var14;
 		var4.particleGravity = var1;
 		dirt = var4;
 		var10000 = new Tile(4, 16);
@@ -392,17 +398,16 @@ public class Tile {
 		var0 = 1.0F;
 		var2 = var10000;
 		var2.particleGravity = var1;
-		stoneBrick = var2;
 		var10000 = new Tile(5, 4);
 		var1 = 1.0F;
 		var0 = 1.0F;
 		var2 = var10000;
 		var2.particleGravity = var1;
 		wood = var2;
-		Bush var13 = new Bush(6);
+		Bush var15 = new Bush(6);
 		var1 = 1.0F;
 		var0 = 0.7F;
-		Bush var5 = var13;
+		Bush var5 = var15;
 		var5.particleGravity = var1;
 		bush = var5;
 		var10000 = new Tile(7, 17);
@@ -411,40 +416,40 @@ public class Tile {
 		var2 = var10000;
 		var2.particleGravity = var1;
 		unbreakable = var2;
-		LiquidTile var14 = new LiquidTile(8, Liquid.water);
+		LiquidTile var16 = new LiquidTile(8, Liquid.water);
 		var1 = 1.0F;
 		var0 = 1.0F;
-		LiquidTile var6 = var14;
+		LiquidTile var6 = var16;
 		var6.particleGravity = var1;
 		water = var6;
-		CalmLiquidTile var15 = new CalmLiquidTile(9, Liquid.water);
+		CalmLiquidTile var17 = new CalmLiquidTile(9, Liquid.water);
 		var1 = 1.0F;
 		var0 = 1.0F;
-		CalmLiquidTile var7 = var15;
+		CalmLiquidTile var7 = var17;
 		var7.particleGravity = var1;
 		calmWater = var7;
-		var14 = new LiquidTile(10, Liquid.lava);
+		var16 = new LiquidTile(10, Liquid.lava);
 		var1 = 1.0F;
 		var0 = 1.0F;
-		var6 = var14;
+		var6 = var16;
 		var6.particleGravity = var1;
 		lava = var6;
-		var15 = new CalmLiquidTile(11, Liquid.lava);
+		var17 = new CalmLiquidTile(11, Liquid.lava);
 		var1 = 1.0F;
 		var0 = 1.0F;
-		var7 = var15;
+		var7 = var17;
 		var7.particleGravity = var1;
 		calmLava = var7;
-		FallingTile var16 = new FallingTile(12, 18);
+		FallingTile var18 = new FallingTile(12, 18);
 		var1 = 1.0F;
 		var0 = 0.8F;
-		FallingTile var8 = var16;
+		FallingTile var8 = var18;
 		var8.particleGravity = var1;
 		sand = var8;
-		var16 = new FallingTile(13, 19);
+		var18 = new FallingTile(13, 19);
 		var1 = 1.0F;
 		var0 = 0.8F;
-		var8 = var16;
+		var8 = var18;
 		var8.particleGravity = var1;
 		gravel = var8;
 		var10000 = new Tile(14, 32);
@@ -465,17 +470,29 @@ public class Tile {
 		var2 = var10000;
 		var2.particleGravity = var1;
 		oreCoal = var2;
-		LogTile var17 = new LogTile(17);
+		LogTile var19 = new LogTile(17);
 		var1 = 1.0F;
 		var0 = 1.0F;
-		LogTile var9 = var17;
+		LogTile var9 = var19;
 		var9.particleGravity = var1;
 		log = var9;
-		LeafTile var18 = new LeafTile(18, 22);
+		LeafTile var20 = new LeafTile(18, 22, true);
 		var1 = 0.4F;
 		var0 = 1.0F;
-		LeafTile var10 = var18;
+		LeafTile var10 = var20;
 		var10.particleGravity = var1;
 		leaf = var10;
+		SpongeTile var21 = new SpongeTile(19);
+		var1 = 0.9F;
+		var0 = 1.0F;
+		SpongeTile var11 = var21;
+		var11.particleGravity = var1;
+		sponge = var11;
+		GlassTile var22 = new GlassTile(20, 49, false);
+		var1 = 1.0F;
+		var0 = 1.0F;
+		GlassTile var12 = var22;
+		var12.particleGravity = var1;
+		glass = var12;
 	}
 }

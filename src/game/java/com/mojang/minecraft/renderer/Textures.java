@@ -1,8 +1,11 @@
 package com.mojang.minecraft.renderer;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
+import com.mojang.minecraft.renderer.texture.TextureFX;
 import com.mojang.util.GLAllocation;
 import net.lax1dude.eaglercraft.EagRuntime;
 import net.lax1dude.eaglercraft.opengl.ImageData;
@@ -14,6 +17,8 @@ import net.lax1dude.eaglercraft.internal.buffer.IntBuffer;
 public class Textures {
 	private HashMap idMap = new HashMap();
 	public IntBuffer idBuffer = GLAllocation.createIntBuffer(1);
+	public ByteBuffer textureBuffer = GLAllocation.createByteBuffer(262144);
+	public List textureList = new ArrayList();
 	
 	public final int getTextureId(String var1) {
 			if(this.idMap.containsKey(var1)) {
@@ -34,7 +39,6 @@ public class Textures {
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
             int w = img.width;
             int h = img.height;
-            ByteBuffer pixels = GLAllocation.createByteBuffer(w * h << 2);
             int[] rawPixels = new int[w * h];
             byte[] var6 = new byte[w * h << 2];
             img.getRGB(0, 0, w, h, rawPixels, 0, w);
@@ -50,9 +54,15 @@ public class Textures {
 				var6[(i << 2) + 3] = (byte)a;
             }
 
-            pixels.put(var6);
-            pixels.position(0).limit(var6.length);
-            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, w, h, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, pixels);
+    		this.textureBuffer.clear();
+    		this.textureBuffer.put(var6);
+    		this.textureBuffer.position(0).limit(var6.length);
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, w, h, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, (ByteBuffer)this.textureBuffer);
             return id;
     }
+	
+	public final void registerTextureFX(TextureFX var1) {
+		this.textureList.add(var1);
+		var1.onTick();
+	}
 }

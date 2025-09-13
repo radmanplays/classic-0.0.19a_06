@@ -322,11 +322,6 @@ public final class Minecraft implements Runnable {
 
 						checkGlError("Pre render");
 						float var41 = this.timer.a;
-						if(!Display.isActive()) {
-							if(this.screen == null) {
-								this.pauseGame();
-							}
-						}
 
 						int var42;
 						int var44;
@@ -689,11 +684,6 @@ public final class Minecraft implements Runnable {
 	}
 
 	private void render(float var1) {
-		if(!Display.isActive()) {
-			if(this.screen == null) {
-				this.pauseGame();
-			}
-		}
 		if (Display.wasResized()) {
 			this.width = Display.getWidth();
 			this.height = Display.getHeight();
